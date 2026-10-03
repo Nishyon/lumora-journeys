@@ -189,30 +189,25 @@
   function hero() {
     const sec = $('.hx');
     if (!sec) return () => {};
-    const media = $('.hx-media', sec), imgs = $$('img', media), l1 = $('.l1', sec), l2 = $('.l2', sec), end = $('.hx-end', sec), title = $('.hx-title', sec);
-    const place = $('[data-place]', sec), coord = $('[data-coord]', sec);
-    let k = 0;
-    setInterval(() => {
-      k = (k + 1) % imgs.length;
-      imgs.forEach((im, i) => im.classList.toggle('on', i === k));
-      if (place) { place.textContent = imgs[k].dataset.place; coord.textContent = imgs[k].dataset.coord; }
-    }, 4200);
+    const slides = $$('.hx-slide', sec), dots = $$('.hx-dot', sec), media = $('.hx-media', sec), inner = $('.hx-in', sec);
+    const place = $('[data-hplace]', sec), coord = $('[data-hcoord]', sec);
+    let k = 0, t;
+    const go = n => {
+      k = (n + slides.length) % slides.length;
+      slides.forEach((s, i) => s.classList.toggle('on', i === k));
+      dots.forEach((d, i) => { d.classList.remove('on'); if (i === k) { void d.offsetWidth; d.classList.add('on'); } });
+      place.textContent = slides[k].dataset.place;
+      coord.textContent = slides[k].dataset.coord;
+      clearTimeout(t); t = setTimeout(() => go(k + 1), 7000);
+    };
+    dots.forEach((d, i) => d.addEventListener('click', () => go(i)));
+    go(0);
     return () => {
-      const r = sec.getBoundingClientRect();
-      const p = clamp(-r.top / (r.height - innerHeight), 0, 1);
-      const e = clamp(p / .7, 0, 1), ee = 1 - Math.pow(1 - e, 3);
-      const mob = innerWidth < 640;
-      const v = mob ? 30 : 22, h = mob ? 12 : 33;
-      media.style.clipPath = `inset(${v * (1 - ee)}% ${h * (1 - ee)}% ${v * (1 - ee)}% ${h * (1 - ee)}% round ${26 * (1 - ee)}px)`;
-      imgs.forEach(im => { im.style.transform = `scale(${1.3 - .3 * ee})`; });
-      l1.style.transform = `translate3d(${-ee * 45}vw,0,0)`;
-      l2.style.transform = `translate3d(${ee * 45}vw,0,0)`;
-      title.style.opacity = 1 - ee * .9;
-      const q = clamp((p - .6) / .3, 0, 1);
-      media.style.setProperty('--shade', q);
-      end.style.opacity = q;
-      end.style.transform = `translateY(${30 * (1 - q)}px)`;
-      end.classList.toggle('show', q > .5);
+      const p = clamp(scrollY / innerHeight, 0, 1);
+      const m = innerWidth < 640 ? 3 : 2.5;
+      media.style.clipPath = `inset(${p * 6}% ${p * m}% 0% ${p * m}% round ${p * 30}px)`;
+      inner.style.transform = `translate3d(0,${p * innerHeight * .25}px,0)`;
+      inner.style.opacity = 1 - p * 1.1;
     };
   }
 
@@ -653,7 +648,7 @@
   newsletter();
   faq();
   planner();
-  intro(() => { $$('[data-hero]').forEach(el => el.classList.add('in')); observe(); });
+  intro(() => { document.body.classList.add('ready'); $$('[data-hero]').forEach(el => el.classList.add('in')); observe(); });
   let ly = -1, lw = 0;
   const frame = () => {
     if (scrollY !== ly || innerWidth !== lw) { ly = scrollY; lw = innerWidth; tHero(); tStack(); tPx(); }
