@@ -1,45 +1,49 @@
-/* Lumora Journeys — interactions */
+/* LUMORA — interactions v2 */
 (() => {
   const $ = (s, c = document) => c.querySelector(s);
   const $$ = (s, c = document) => [...c.querySelectorAll(s)];
   const U = (id, w = 1200) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
   const money = n => '$' + n.toLocaleString('en-US');
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   };
   const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
   const HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20.5s-7.5-4.6-9.3-9.4C1.4 7.6 3.8 4 7.4 4c2 0 3.6 1.1 4.6 2.7C13 5.1 14.6 4 16.6 4c3.6 0 6 3.6 4.7 7.1-1.8 4.8-9.3 9.4-9.3 9.4z"/></svg>';
+  const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   /* ---------------- data ---------------- */
+  // best: peak months, ok: shoulder months (1-12)
+  const D = (id, name, region, img, coord, tag, best, ok) => ({ id, name, region, img, coord, tag, best, ok });
   const DESTS = [
-    { id: 'japan', name: 'Japan', region: 'Asia', img: '1528360983277-13d401cdc186', best: 'Mar–May · Oct–Nov', tag: 'Culture' },
-    { id: 'maldives', name: 'Maldives', region: 'Islands', img: '1514282401047-d79a71a590e8', best: 'Nov–Apr', tag: 'Beach' },
-    { id: 'greece', name: 'Greece', region: 'Europe', img: '1533105079780-92b9be482077', best: 'May–Oct', tag: 'Romance' },
-    { id: 'kenya', name: 'Kenya', region: 'Africa', img: '1547471080-7cc2caa01a7e', best: 'Jul–Oct', tag: 'Wildlife' },
-    { id: 'indonesia', name: 'Bali', region: 'Asia', img: '1555400038-63f5ba517a47', best: 'Apr–Oct', tag: 'Wellness' },
-    { id: 'italy', name: 'Italy', region: 'Europe', img: '1552832230-c0197dd311b5', best: 'Apr–Jun · Sep', tag: 'Culture' },
-    { id: 'iceland', name: 'Iceland', region: 'Europe', img: '1531366936337-7c912a4589a7', best: 'Sep–Mar', tag: 'Adventure' },
-    { id: 'uae', name: 'Dubai', region: 'Middle East', img: '1512453979798-5ea266f8880c', best: 'Nov–Mar', tag: 'Luxury' },
-    { id: 'morocco', name: 'Morocco', region: 'Africa', img: '1539020140153-e479b8c22e70', best: 'Mar–May · Oct', tag: 'Culture' },
-    { id: 'canada', name: 'Canada', region: 'Americas', img: '1464822759023-fed622ff2c3b', best: 'Jun–Sep', tag: 'Adventure' },
-    { id: 'india', name: 'India', region: 'Asia', img: '1524492412937-b28074a5d7da', best: 'Oct–Mar', tag: 'Culture' },
-    { id: 'vietnam', name: 'Vietnam', region: 'Asia', img: '1528127269322-539801943592', best: 'Feb–Apr', tag: 'Culture' },
-    { id: 'france', name: 'France', region: 'Europe', img: '1499856871958-5b9627545d1a', best: 'May–Sep', tag: 'Romance' },
-    { id: 'scotland', name: 'Scotland', region: 'Europe', img: '1505832018823-50331d70d237', best: 'May–Sep', tag: 'Adventure' },
-    { id: 'turkey', name: 'Türkiye', region: 'Middle East', img: '1530789253388-582c481c54b0', best: 'Apr–Jun · Sep–Oct', tag: 'Romance' },
-    { id: 'thailand', name: 'Thailand', region: 'Asia', img: '1534008897995-27a23e859048', best: 'Nov–Apr', tag: 'Beach' },
-    { id: 'patagonia', name: 'Patagonia', region: 'Americas', img: '1526772662000-3f88f10405ff', best: 'Nov–Mar', tag: 'Adventure' }
+    D('japan', 'Japan', 'Asia', '1528360983277-13d401cdc186', '35.01°N 135.76°E', 'Culture', [3, 4, 10, 11], [5, 9, 12]),
+    D('maldives', 'Maldives', 'Islands', '1514282401047-d79a71a590e8', '4.17°N 73.50°E', 'Beach', [1, 2, 3, 4], [11, 12]),
+    D('greece', 'Greece', 'Europe', '1533105079780-92b9be482077', '36.46°N 25.37°E', 'Romance', [5, 6, 9], [7, 8, 10]),
+    D('kenya', 'Kenya', 'Africa', '1547471080-7cc2caa01a7e', '1.49°S 35.14°E', 'Wildlife', [7, 8, 9, 10], [1, 2, 6]),
+    D('indonesia', 'Bali', 'Asia', '1555400038-63f5ba517a47', '8.51°S 115.26°E', 'Wellness', [5, 6, 7, 8, 9], [4, 10]),
+    D('italy', 'Italy', 'Europe', '1552832230-c0197dd311b5', '41.89°N 12.49°E', 'Culture', [4, 5, 6, 9], [7, 8, 10]),
+    D('iceland', 'Iceland', 'Europe', '1531366936337-7c912a4589a7', '64.14°N 21.94°W', 'Adventure', [9, 10, 2, 3], [11, 12, 1, 6, 7, 8]),
+    D('uae', 'Dubai', 'Middle East', '1512453979798-5ea266f8880c', '25.20°N 55.27°E', 'Luxury', [11, 12, 1, 2, 3], [4, 10]),
+    D('morocco', 'Morocco', 'Africa', '1539020140153-e479b8c22e70', '31.62°N 7.98°W', 'Culture', [3, 4, 5, 10], [9, 11]),
+    D('canada', 'Canada', 'Americas', '1464822759023-fed622ff2c3b', '51.17°N 115.57°W', 'Adventure', [6, 7, 8, 9], [5, 10]),
+    D('india', 'India', 'Asia', '1524492412937-b28074a5d7da', '27.17°N 78.04°E', 'Culture', [10, 11, 12, 1, 2], [3]),
+    D('vietnam', 'Vietnam', 'Asia', '1528127269322-539801943592', '20.91°N 107.18°E', 'Culture', [2, 3, 4], [10, 11, 12]),
+    D('france', 'France', 'Europe', '1499856871958-5b9627545d1a', '48.86°N 2.35°E', 'Romance', [5, 6, 9], [4, 7, 8, 10]),
+    D('scotland', 'Scotland', 'Europe', '1505832018823-50331d70d237', '56.88°N 5.43°W', 'Adventure', [5, 6, 9], [7, 8]),
+    D('turkey', 'Türkiye', 'Middle East', '1530789253388-582c481c54b0', '38.64°N 34.83°E', 'Romance', [4, 5, 9, 10], [6]),
+    D('thailand', 'Thailand', 'Asia', '1534008897995-27a23e859048', '7.74°N 98.77°E', 'Beach', [11, 12, 1, 2], [3, 4]),
+    D('patagonia', 'Patagonia', 'Americas', '1526772662000-3f88f10405ff', '49.33°S 72.89°W', 'Adventure', [12, 1, 2], [11, 3])
   ];
   const J = (id, dest, title, route, days, region, style, price, img, rating, hl) => ({ id, dest, title, route, days, region, style, price, img, rating, hl });
   const JOURNEYS = [
     J('japan-slowly', 'japan', 'Japan, Slowly', ['Tokyo', 'Hakone', 'Kyoto', 'Osaka'], 12, 'Asia', 'Culture', 6450, '1493976040374-85c8e12f0c0e', 4.98,
-      ['Private tea ceremony in a Kyoto machiya', 'Ryokan night with onsen in Hakone', 'After-hours tour of Fushimi Inari', 'Sushi counter seats in Ginza']),
-    J('maldives-overwater', 'maldives', 'Maldives Overwater Escape', ['Malé', 'Baa Atoll'], 7, 'Islands', 'Beach', 5890, '1544551763-46a013bb70d5', 4.96,
+      ['Private tea ceremony in a Kyoto machiya', 'Ryokan night with onsen in Hakone', 'After-hours walk through Fushimi Inari', 'Sushi counter seats in Ginza']),
+    J('maldives-overwater', 'maldives', 'Maldives Overwater', ['Malé', 'Baa Atoll'], 7, 'Islands', 'Beach', 5890, '1544551763-46a013bb70d5', 4.96,
       ['Overwater villa with private pool', 'Manta ray snorkel at Hanifaru Bay', 'Sandbank dinner under the stars', 'Seaplane transfers included']),
     J('cyclades', 'greece', 'Santorini & the Cyclades', ['Athens', 'Mykonos', 'Santorini'], 10, 'Europe', 'Romance', 4780, '1570077188670-e3a8d69ac5ff', 4.93,
       ['Private Acropolis visit at opening', 'Catamaran sunset cruise in Oia', 'Cave suite with caldera views', 'Assyrtiko wine tasting']),
-    J('great-migration', 'kenya', 'Great Migration Safari', ['Nairobi', 'Masai Mara', 'Amboseli'], 9, 'Africa', 'Wildlife', 7950, '1516426122078-c23e76319801', 5.0,
+    J('great-migration', 'kenya', 'The Great Migration', ['Nairobi', 'Masai Mara', 'Amboseli'], 9, 'Africa', 'Wildlife', 7950, '1516426122078-c23e76319801', 5.0,
       ['River crossings with a private guide', 'Hot-air balloon at sunrise', 'Tented camps with butler service', 'Kilimanjaro views in Amboseli']),
     J('bali-soul', 'indonesia', 'Bali Soul Retreat', ['Ubud', 'Sidemen', 'Uluwatu'], 10, 'Asia', 'Wellness', 3690, '1537996194471-e657df975ab4', 4.91,
       ['Daily yoga with a private teacher', 'Water temple blessing ritual', 'Rice-terrace cycling in Sidemen', 'Clifftop villa in Uluwatu']),
@@ -47,11 +51,11 @@
       ['Guided hut-to-hut hiking', 'Luggage moved ahead each day', 'Dawn row on Lake Braies', 'Michelin-star mountain dinner']),
     J('iceland-aurora', 'iceland', 'Iceland Under the Aurora', ['Reykjavík', 'Golden Circle', 'Vík'], 7, 'Europe', 'Adventure', 4380, '1531366936337-7c912a4589a7', 4.89,
       ['Northern Lights super-jeep hunt', 'Ice cave in Vatnajökull', 'Private Blue Lagoon retreat', 'Glass-roof lodge stay']),
-    J('dubai-dunes', 'uae', 'Dubai Dunes & Skyline', ['Dubai', 'Abu Dhabi', 'Liwa Oasis'], 6, 'Middle East', 'Luxury', 3950, '1512453979798-5ea266f8880c', 4.87,
+    J('dubai-dunes', 'uae', 'Dunes & Skyline', ['Dubai', 'Abu Dhabi', 'Liwa Oasis'], 6, 'Middle East', 'Luxury', 3950, '1512453979798-5ea266f8880c', 4.87,
       ['Desert camp in the Empty Quarter', 'Louvre Abu Dhabi private tour', 'Helicopter over Palm Jumeirah', 'Falconry at sunrise']),
     J('imperial-morocco', 'morocco', 'Imperial Morocco', ['Marrakech', 'Fes', 'Merzouga'], 11, 'Africa', 'Culture', 3850, '1489493585363-d69421e0edd3', 4.92,
       ['Riad stays in the medinas', 'Camel trek into the Erg Chebbi', 'Cooking class with a Fassi family', 'Atlas Mountains drive']),
-    J('rockies-rail', 'canada', 'Canadian Rockies by Rail', ['Vancouver', 'Banff', 'Jasper'], 10, 'Americas', 'Adventure', 5640, '1464822759023-fed622ff2c3b', 4.94,
+    J('rockies-rail', 'canada', 'Rockies by Rail', ['Vancouver', 'Banff', 'Jasper'], 10, 'Americas', 'Adventure', 5640, '1464822759023-fed622ff2c3b', 4.94,
       ['Rocky Mountaineer GoldLeaf', 'Canoe on Moraine Lake', 'Icefields Parkway road trip', 'Wildlife safari in Jasper']),
     J('grand-tour', 'italy', 'The Italian Grand Tour', ['Rome', 'Florence', 'Venice'], 12, 'Europe', 'Culture', 5980, '1523906834658-6e24ef2386f9', 4.97,
       ['Sistine Chapel before the crowds', 'Tuscan villa cooking day', 'Private gondola through Venice', 'First-class rail between cities']),
@@ -63,185 +67,297 @@
       ['Seine dinner cruise', 'Lavender fields in Valensole', 'Perfume workshop in Grasse', 'Monaco by vintage car']),
     J('highlands-steam', 'scotland', 'Highlands by Steam', ['Edinburgh', 'Fort William', 'Isle of Skye'], 8, 'Europe', 'Adventure', 3980, '1505832018823-50331d70d237', 4.9,
       ['Jacobite steam train', 'Private whisky distillery visit', 'Castle hotel night', 'Fairy Pools hike on Skye']),
-    J('cappadocia-coast', 'turkey', 'Cappadocia & the Turquoise Coast', ['Istanbul', 'Cappadocia', 'Bodrum'], 9, 'Middle East', 'Romance', 3560, '1530789253388-582c481c54b0', 4.92,
+    J('cappadocia-coast', 'turkey', 'Cappadocia & the Coast', ['Istanbul', 'Cappadocia', 'Bodrum'], 9, 'Middle East', 'Romance', 3560, '1530789253388-582c481c54b0', 4.92,
       ['Balloon flight at dawn', 'Cave suite in Uçhisar', 'Bosphorus yacht at sunset', 'Gulet day on the Aegean']),
     J('thai-islands', 'thailand', 'Thai Islands & Temples', ['Bangkok', 'Chiang Mai', 'Krabi'], 10, 'Asia', 'Beach', 2980, '1534008897995-27a23e859048', 4.86,
       ['Ethical elephant sanctuary', 'Longtail boat to hidden lagoons', 'Temple walk with a monk', 'Beachfront pool villa']),
     J('patagonia-edge', 'patagonia', 'Patagonia Wild Edge', ['Buenos Aires', 'El Chaltén', 'Torres del Paine'], 12, 'Americas', 'Adventure', 6890, '1526772662000-3f88f10405ff', 4.97,
-      ['Fitz Roy trek with mountain guide', 'Glacier walk on Perito Moreno', 'Estancia stay with gauchos', 'Eco-lodge in Torres del Paine'])
+      ['Fitz Roy trek with a mountain guide', 'Glacier walk on Perito Moreno', 'Estancia stay with gauchos', 'Eco-lodge in Torres del Paine'])
   ];
-  const INCLUDES = ['Hand-picked boutique stays', 'Private transfers throughout', 'Expert local guides', 'Daily breakfast & select dinners', '24/7 on-trip concierge', 'Carbon offset for every flight'];
+  const INCLUDES = ['Hand-picked boutique stays', 'Private transfers throughout', 'Expert local guides', 'Daily breakfast & select dinners', '24/7 on-trip concierge', 'Carbon-balanced flights'];
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const byId = id => JOURNEYS.find(j => j.id === id);
-  const fromPrice = dest => Math.min(...JOURNEYS.filter(j => j.dest === dest).map(j => j.price));
-  const countFor = dest => JOURNEYS.filter(j => j.dest === dest).length;
+  const fromPrice = d => Math.min(...JOURNEYS.filter(j => j.dest === d).map(j => j.price));
+  const countFor = d => JOURNEYS.filter(j => j.dest === d).length;
 
   /* ---------------- smooth scroll ---------------- */
   let lenis = null;
-  function smooth() {
-    if (window.Lenis && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      lenis = new Lenis({ duration: 1.15, easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smoothWheel: true });
-      const raf = t => { lenis.raf(t); requestAnimationFrame(raf); };
-      requestAnimationFrame(raf);
-    }
-    $$('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
-      const t = $(a.getAttribute('href'));
-      if (!t) return;
-      e.preventDefault();
-      lenis ? lenis.scrollTo(t, { offset: -80 }) : t.scrollIntoView({ behavior: 'smooth' });
-    }));
+  if (window.Lenis && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    lenis = new Lenis({ duration: 1.2, easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+    const raf = t => { lenis.raf(t); requestAnimationFrame(raf); };
+    requestAnimationFrame(raf);
   }
-  const lockScroll = on => {
-    document.documentElement.style.overflow = on ? 'hidden' : '';
-    if (lenis) on ? lenis.stop() : lenis.start();
-  };
+  const lockScroll = on => { document.documentElement.style.overflow = on ? 'hidden' : ''; if (lenis) on ? lenis.stop() : lenis.start(); };
+  const scrollToEl = el => lenis ? lenis.scrollTo(el, { offset: -20 }) : el.scrollIntoView({ behavior: 'smooth' });
 
   /* ---------------- toast ---------------- */
   let toastT;
-  function toast(msg) {
+  const toast = msg => {
     let t = $('.toast');
     if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
     t.textContent = msg;
     requestAnimationFrame(() => t.classList.add('show'));
-    clearTimeout(toastT);
-    toastT = setTimeout(() => t.classList.remove('show'), 2600);
-  }
+    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600);
+  };
 
-  /* ---------------- header + menu ---------------- */
-  function chrome() {
-    try { sessionStorage.setItem('lj', '1'); } catch (e) {}
-    const hdr = $('.hdr');
-    let last = 0;
-    const onScroll = () => {
-      const y = window.scrollY;
-      hdr.classList.toggle('scrolled', y > 40);
-      hdr.classList.toggle('hide', y > 500 && y > last && !document.body.classList.contains('menu-open'));
-      last = y;
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    const burger = $('.burger');
-    if (burger) burger.addEventListener('click', () => {
-      const open = document.body.classList.toggle('menu-open');
-      burger.setAttribute('aria-expanded', open);
-      lockScroll(open);
-    });
-    $$('.mnav a').forEach(a => a.addEventListener('click', () => { document.body.classList.remove('menu-open'); lockScroll(false); }));
-  }
-
-  /* ---------------- hero slideshow ---------------- */
-  function hero() {
-    const slides = $$('.hs'), dots = $$('.hdot');
-    if (!slides.length) return;
-    let i = 0, timer;
-    const go = n => {
-      i = (n + slides.length) % slides.length;
-      slides.forEach((s, k) => s.classList.toggle('on', k === i));
-      dots.forEach((d, k) => {
-        d.classList.remove('on');
-        if (k === i) { void d.offsetWidth; d.classList.add('on'); }
-      });
-      clearTimeout(timer);
-      timer = setTimeout(() => go(i + 1), 7000);
-    };
-    dots.forEach((d, k) => d.addEventListener('click', () => go(k)));
-    go(0);
-  }
-
-  /* ---------------- hero search ---------------- */
-  function search() {
-    const f = $('#hero-search');
-    if (!f) return;
-    f.addEventListener('submit', e => {
-      e.preventDefault();
-      const p = new URLSearchParams();
-      ['region', 'style', 'dur'].forEach(k => { const v = f.elements[k].value; if (v) p.set(k, v); });
-      location.href = 'journeys.html' + (p.toString() ? '?' + p : '') + '#results';
-    });
-  }
-
-  /* ---------------- word-by-word scroll text ---------------- */
-  function words() {
-    const els = $$('.words');
-    els.forEach(el => {
-      const wrap = node => {
+  /* ---------------- split text ---------------- */
+  function split() {
+    $$('[data-split]').forEach(el => {
+      let i = 0;
+      const mode = el.dataset.split;
+      const walk = node => {
         [...node.childNodes].forEach(n => {
           if (n.nodeType === 3) {
             const frag = document.createDocumentFragment();
             n.textContent.split(/(\s+)/).forEach(part => {
               if (!part) return;
-              if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
-              const s = document.createElement('span'); s.className = 'w'; s.textContent = part; frag.appendChild(s);
+              if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(' ')); return; }
+              const w = document.createElement('span'); w.className = 'w';
+              if (mode === 'words') {
+                const c = document.createElement('span'); c.className = 'c'; c.style.setProperty('--i', i++); c.textContent = part; w.appendChild(c);
+              } else {
+                [...part].forEach(ch => { const c = document.createElement('span'); c.className = 'c'; c.style.setProperty('--i', i++); c.textContent = ch; w.appendChild(c); });
+              }
+              frag.appendChild(w);
             });
             n.replaceWith(frag);
-          } else if (n.nodeType === 1) wrap(n);
+          } else if (n.nodeType === 1 && n.tagName !== 'BR' && !n.classList.contains('ipill')) walk(n);
         });
       };
-      wrap(el);
-      el._w = $$('.w', el);
-    });
-    return () => els.forEach(el => {
-      const r = el.getBoundingClientRect(), vh = innerHeight;
-      const p = Math.min(1, Math.max(0, (vh * .85 - r.top) / (r.height + vh * .3)));
-      const n = Math.round(p * el._w.length);
-      el._w.forEach((w, k) => w.classList.toggle('lit', k < n));
+      walk(el);
     });
   }
 
-  /* ---------------- horizontal destinations ---------------- */
-  function hz() {
-    const sec = $('.hz');
+  /* ---------------- loader / curtain / ready ---------------- */
+  function intro(done) {
+    let seen = false;
+    try { seen = !!sessionStorage.getItem('lj2'); sessionStorage.setItem('lj2', '1'); } catch (e) {}
+    const loader = $('.loader');
+    if (seen || !loader) { setTimeout(done, 350); return; }
+    const imgs = $$('.loader-frame img', loader), num = $('.loader-num', loader);
+    let k = 0;
+    const flip = setInterval(() => { imgs.forEach((im, i) => im.classList.toggle('on', i === k % imgs.length)); k++; }, 260);
+    const t0 = performance.now(), dur = 2100;
+    const step = t => {
+      const p = clamp((t - t0) / dur, 0, 1), v = Math.round((1 - Math.pow(1 - p, 3)) * 100);
+      num.textContent = String(v).padStart(2, '0');
+      if (p < 1) requestAnimationFrame(step);
+      else { clearInterval(flip); loader.classList.add('out'); setTimeout(done, 450); setTimeout(() => loader.remove(), 1300); }
+    };
+    requestAnimationFrame(step);
+  }
+  function transitions() {
+    document.addEventListener('click', e => {
+      const a = e.target.closest('a');
+      if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
+      const href = a.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:') || /^https?:/.test(href)) return;
+      const url = new URL(href, location.href);
+      if (url.pathname === location.pathname && url.hash) return;
+      e.preventDefault();
+      try { sessionStorage.setItem('lj2', '1'); } catch (err) {}
+      document.documentElement.classList.add('seen');
+      document.body.classList.add('leaving');
+      setTimeout(() => { location.href = url.href; }, 650);
+    });
+    addEventListener('pageshow', e => { if (e.persisted) document.body.classList.remove('leaving'); });
+  }
+
+  /* ---------------- header / menu / clocks ---------------- */
+  function chrome() {
+    const hdr = $('.hdr');
+    let last = 0;
+    addEventListener('scroll', () => {
+      const y = scrollY;
+      hdr.classList.toggle('hide', y > 300 && y > last && !document.body.classList.contains('menu-open'));
+      last = y;
+    }, { passive: true });
+    const b = $('.burger');
+    if (b) b.addEventListener('click', () => {
+      const open = document.body.classList.toggle('menu-open');
+      b.setAttribute('aria-expanded', open);
+      $('.burger em', b).textContent = open ? 'Close' : 'Menu';
+      lockScroll(open);
+    });
+    const tick = () => $$('[data-tz]').forEach(el => {
+      try { el.textContent = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: el.dataset.tz }); } catch (e) {}
+    });
+    tick(); setInterval(tick, 15000);
+  }
+
+  /* ---------------- home hero ---------------- */
+  function hero() {
+    const sec = $('.hx');
     if (!sec) return () => {};
-    const track = $('.hz-track', sec), bar = $('.hz-progress i', sec);
-    track.innerHTML = DESTS.slice(0, 8).map(d => destCard(d)).join('') +
-      `<a class="hz-end" href="destinations.html"><small class="eyebrow">${DESTS.length} destinations</small><h3>See every <em>corner</em> we know by heart.</h3><span class="arrow-c">${ARROW}</span></a>`;
-    let dist = 0, desk = false;
-    const size = () => {
-      desk = innerWidth > 980;
-      if (desk) {
-        dist = Math.max(0, track.scrollWidth - innerWidth);
-        sec.style.height = (innerHeight + dist) + 'px';
-      } else { sec.style.height = ''; track.style.transform = ''; }
-    };
-    size();
-    addEventListener('resize', size);
-    addEventListener('load', size);
+    const media = $('.hx-media', sec), imgs = $$('img', media), l1 = $('.l1', sec), l2 = $('.l2', sec), end = $('.hx-end', sec), title = $('.hx-title', sec);
+    const place = $('[data-place]', sec), coord = $('[data-coord]', sec);
+    let k = 0;
+    setInterval(() => {
+      k = (k + 1) % imgs.length;
+      imgs.forEach((im, i) => im.classList.toggle('on', i === k));
+      if (place) { place.textContent = imgs[k].dataset.place; coord.textContent = imgs[k].dataset.coord; }
+    }, 4200);
     return () => {
-      if (!desk) return;
       const r = sec.getBoundingClientRect();
-      const p = Math.min(1, Math.max(0, -r.top / (r.height - innerHeight || 1)));
-      track.style.transform = `translate3d(${-p * dist}px,0,0)`;
-      if (bar) bar.style.transform = `scaleX(${p})`;
+      const p = clamp(-r.top / (r.height - innerHeight), 0, 1);
+      const e = clamp(p / .7, 0, 1), ee = 1 - Math.pow(1 - e, 3);
+      const mob = innerWidth < 640;
+      const v = mob ? 30 : 22, h = mob ? 12 : 33;
+      media.style.clipPath = `inset(${v * (1 - ee)}% ${h * (1 - ee)}% ${v * (1 - ee)}% ${h * (1 - ee)}% round ${26 * (1 - ee)}px)`;
+      imgs.forEach(im => { im.style.transform = `scale(${1.3 - .3 * ee})`; });
+      l1.style.transform = `translate3d(${-ee * 45}vw,0,0)`;
+      l2.style.transform = `translate3d(${ee * 45}vw,0,0)`;
+      title.style.opacity = 1 - ee * .9;
+      const q = clamp((p - .6) / .3, 0, 1);
+      media.style.setProperty('--shade', q);
+      end.style.opacity = q;
+      end.style.transform = `translateY(${30 * (1 - q)}px)`;
+      end.classList.toggle('show', q > .5);
     };
-  }
-  function destCard(d, cls = '') {
-    const n = countFor(d.id);
-    return `<a class="dcard ${cls}" href="journeys.html?dest=${d.id}#results" data-cursor="Explore" data-region="${d.region}">
-      <img src="${U(d.img, 900)}" alt="${d.name}" loading="lazy">
-      <div class="dcard-top"><span class="pill">${d.region}</span><span class="pill">${n} journey${n > 1 ? 's' : ''}</span></div>
-      <div class="dcard-body"><small>${d.tag} · <span class="best">${d.best}</span></small><h3>${d.name}</h3>
-      <div class="dcard-foot"><span>From <b>${money(fromPrice(d.id))}</b></span><span class="arrow-c">${ARROW}</span></div></div></a>`;
   }
 
-  /* ---------------- journey cards ---------------- */
-  let saved = store.get('lj-saved', []);
-  function cardHTML(j) {
-    const on = saved.includes(j.id);
-    return `<article class="jcard" data-id="${j.id}" data-cursor="View">
-      <div class="jcard-media"><img src="${U(j.img, 900)}" alt="${j.title}" loading="lazy">
-        <span class="pill">${j.style}</span>
-        <button class="heart ${on ? 'on' : ''}" aria-label="Save journey" aria-pressed="${on}">${HEART}</button>
-        <div class="jcard-days"><b>${j.days}</b><small>days</small></div></div>
-      <div class="jcard-body">
-        <div class="jcard-meta"><span>${j.region}</span><span class="rate">${j.rating.toFixed(2)}</span></div>
-        <h3>${j.title}</h3>
-        <p class="jcard-route">${j.route.join(' · ')}</p>
-        <div class="jcard-foot"><div><small>From, per person</small><b>${money(j.price)}</b></div><span class="link-u">Itinerary ${ARROW}</span></div>
-      </div></article>`;
+  /* ---------------- drag carousels ---------------- */
+  function drags() {
+    $$('.drag').forEach(d => {
+      const track = $('.drag-track', d), bar = d.parentElement.querySelector('.drag-bar .bar i');
+      if (!fine) {
+        d.classList.add('native');
+        if (bar) d.addEventListener('scroll', () => {
+          const max = d.scrollWidth - d.clientWidth;
+          bar.style.width = clamp(d.clientWidth / d.scrollWidth * 100, 10, 100) + '%';
+          bar.style.left = (max ? d.scrollLeft / max : 0) * (100 - parseFloat(bar.style.width)) + '%';
+        }, { passive: true });
+        return;
+      }
+      let x = 0, tx = 0, down = false, sx = 0, start = 0, moved = 0, max = 0;
+      const size = () => { max = Math.max(0, track.scrollWidth - d.clientWidth); if (bar) bar.style.width = clamp(d.clientWidth / track.scrollWidth * 100, 10, 100) + '%'; };
+      size(); addEventListener('resize', size); addEventListener('load', size);
+      d.addEventListener('pointerdown', e => { down = true; moved = 0; sx = e.clientX; start = tx; d.classList.add('grabbing'); });
+      addEventListener('pointermove', e => { if (!down) return; const dx = e.clientX - sx; moved = Math.max(moved, Math.abs(dx)); tx = clamp(start + dx * 1.4, -max, 0); });
+      addEventListener('pointerup', () => { down = false; d.classList.remove('grabbing'); });
+      d.addEventListener('click', e => { if (moved > 6) { e.preventDefault(); e.stopPropagation(); } }, true);
+      d.addEventListener('dragstart', e => e.preventDefault());
+      d.addEventListener('wheel', e => {
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { e.preventDefault(); tx = clamp(tx - e.deltaX, -max, 0); }
+      }, { passive: false });
+      const items = [...track.children];
+      const loop = () => {
+        const prev = x;
+        x += (tx - x) * .09;
+        const vel = clamp((x - prev) * .12, -6, 6);
+        track.style.transform = `translate3d(${x}px,0,0)`;
+        items.forEach(it => { it.style.transform = `skewX(${-vel}deg)`; });
+        if (bar) bar.style.left = (max ? -x / max : 0) * (100 - parseFloat(bar.style.width || 20)) + '%';
+        requestAnimationFrame(loop);
+      };
+      loop();
+    });
   }
+  const destCard = (d, i, cls = '') => {
+    const n = countFor(d.id);
+    return `<a class="dc ${cls}" href="journeys.html?dest=${d.id}" data-region="${d.region}" data-cur="Explore">
+      <div class="dc-media"><img src="${U(d.img, 900)}" alt="${d.name}" loading="lazy" draggable="false">
+      <div class="dc-top mono"><span>${String(i + 1).padStart(2, '0')}</span><span>${d.coord}</span></div>
+      <div class="dc-bot"><span class="tag">${d.region}</span><h3>${d.name}</h3>
+      <div class="dc-row"><span>From ${money(fromPrice(d.id))} · ${n} journey${n > 1 ? 's' : ''}</span><span class="go">${ARROW}</span></div></div></div></a>`;
+  };
+  function homeDests() {
+    const t = $('#home-dests');
+    if (t) t.innerHTML = DESTS.slice(0, 9).map((d, i) => destCard(d, i)).join('');
+  }
+
+  /* ---------------- stacking cards ---------------- */
+  function stack() {
+    const wrap = $('#stack');
+    if (!wrap) return () => {};
+    const ids = ['japan-slowly', 'great-migration', 'cyclades', 'patagonia-edge'];
+    wrap.innerHTML = ids.map((id, i) => {
+      const j = byId(id);
+      return `<article class="sc" style="--i:${i}">
+        <div class="sc-media"><img src="${U(j.img, 1500)}" alt="${j.title}" loading="lazy"><div class="tags"><span class="tag acc-t">${j.days} days</span><span class="tag">${j.style}</span></div></div>
+        <div class="sc-body"><div class="num mono"><span>(${String(i + 1).padStart(2, '0')}/${String(ids.length).padStart(2, '0')})</span><span class="mut">${j.region} · ★ ${j.rating.toFixed(2)}</span></div>
+          <h3 class="d-m">${j.title}</h3>
+          <div class="route-l">${j.route.map(r => `<span>${r}</span>`).join('<i></i>')}</div>
+          <ul class="sc-hl">${j.hl.slice(0, 3).map(h => `<li>${h}</li>`).join('')}</ul>
+          <div class="sc-foot"><div class="price"><span class="mono mut">From / person</span><b>${money(j.price)}</b></div>
+          <div class="acts"><button class="btn btn-line" data-open="${j.id}">Itinerary</button><a class="btn btn-acc" href="contact.html?trip=${j.id}"><span class="roll"><span data-t="Plan it">Plan it</span></span>${ARROW}</a></div></div>
+        </div></article>`;
+    }).join('');
+    const cards = $$('.sc', wrap);
+    return () => {
+      if (innerWidth < 900) { cards.forEach(c => { c.style.transform = ''; c.style.filter = ''; }); return; }
+      cards.forEach((c, i) => {
+        const next = cards[i + 1];
+        if (!next) return;
+        const r = next.getBoundingClientRect(), top = parseFloat(getComputedStyle(next).top);
+        const p = clamp(1 - (r.top - top) / (innerHeight * .8), 0, 1);
+        c.style.transform = `scale(${1 - p * .06})`;
+        c.style.filter = `brightness(${1 - p * .45})`;
+      });
+    };
+  }
+
+  /* ---------------- velocity marquee ---------------- */
+  function velMarquee() {
+    const rows = $$('.vm-row');
+    if (!rows.length) return;
+    rows.forEach(r => { r.innerHTML += r.innerHTML; });
+    const st = rows.map(() => ({ x: 0 }));
+    let lastY = scrollY, v = 0;
+    const loop = () => {
+      const dy = scrollY - lastY; lastY = scrollY;
+      v += (dy - v) * .1;
+      rows.forEach((r, i) => {
+        const w = r.scrollWidth / 2, dir = i % 2 ? 1 : -1;
+        st[i].x += dir * (0.6 + Math.abs(v) * .35) * (v < 0 ? -1 : 1);
+        if (st[i].x <= -w) st[i].x += w;
+        if (st[i].x > 0) st[i].x -= w;
+        r.style.transform = `translate3d(${st[i].x}px,0,0)`;
+      });
+      requestAnimationFrame(loop);
+    };
+    loop();
+  }
+
+  /* ---------------- parallax ---------------- */
+  function parallax() {
+    const els = $$('[data-speed]');
+    const bands = $$('.band');
+    return () => {
+      bands.forEach(b => {
+        const r = b.getBoundingClientRect();
+        const p = clamp(1 - (r.top - 80) / (innerHeight * .7), 0, 1);
+        b.style.setProperty('--bi', (6 * (1 - p)) + '%');
+        b.style.setProperty('--br', (30 * (1 - p)) + 'px');
+        const img = $('img', b);
+        if (img) img.style.transform = `translate3d(0,${(r.top + r.height / 2 - innerHeight / 2) * -.12}px,0)`;
+      });
+      if (innerWidth < 640) return;
+      els.forEach(el => {
+        const r = el.parentElement.getBoundingClientRect();
+        if (r.bottom < -300 || r.top > innerHeight + 300) return;
+        el.style.transform = `translate3d(0,${(r.top + r.height / 2 - innerHeight / 2) * -parseFloat(el.dataset.speed)}px,0)`;
+      });
+    };
+  }
+
+  /* ---------------- journey cards / modal ---------------- */
+  let saved = store.get('lj-saved', []);
+  const cardHTML = j => {
+    const on = saved.includes(j.id);
+    return `<article class="jc" data-id="${j.id}" data-cur="View">
+      <div class="jc-media"><img src="${U(j.img, 900)}" alt="${j.title}" loading="lazy"><span class="tag acc-t">${j.days} days</span>
+        <button class="heart ${on ? 'on' : ''}" aria-label="Save journey" aria-pressed="${on}">${HEART}</button></div>
+      <div class="jc-b"><div class="jc-meta mono mut"><span>${j.region} · ${j.style}</span><span>★ ${j.rating.toFixed(2)}</span></div>
+        <h3>${j.title}</h3><p class="jc-route">${j.route.join(' → ')}</p>
+        <div class="jc-foot"><span class="mono mut">From / person</span><b>${money(j.price)}</b></div></div></article>`;
+  };
+  const rowHTML = (j, i) => `<div class="jr" data-id="${j.id}"><span class="mono mut">${String(i + 1).padStart(2, '0')}</span>
+    <div><h3>${j.title}</h3><span class="mono mut">${j.region} · ${j.style}</span></div>
+    <span class="rt mut">${j.route.join(' → ')}</span><span class="mono dd">${j.days} days</span><span class="p">${money(j.price)}</span><span class="go">${ARROW}</span></div>`;
   function bindCards(root) {
     root.addEventListener('click', e => {
-      const heart = e.target.closest('.heart');
-      const card = e.target.closest('.jcard');
+      const heart = e.target.closest('.heart'), card = e.target.closest('[data-id]');
       if (!card) return;
       if (heart) {
         e.stopPropagation();
@@ -249,131 +365,120 @@
         saved = saved.includes(id) ? saved.filter(x => x !== id) : [...saved, id];
         store.set('lj-saved', saved);
         const on = saved.includes(id);
-        heart.classList.toggle('on', on);
-        heart.setAttribute('aria-pressed', on);
+        heart.classList.toggle('on', on); heart.setAttribute('aria-pressed', on);
         toast(on ? 'Saved to your wishlist' : 'Removed from wishlist');
         return;
       }
       openModal(card.dataset.id);
     });
   }
-  function featured() {
-    const el = $('#featured');
-    if (!el) return;
-    el.innerHTML = ['japan-slowly', 'great-migration', 'cyclades'].map(id => cardHTML(byId(id))).join('');
-    bindCards(el);
-  }
-
-  /* ---------------- modal ---------------- */
   function openModal(id) {
     const j = byId(id), m = $('#modal');
     if (!j || !m) return;
     const nights = j.days - 1, per = Math.floor(nights / j.route.length);
-    let rest = nights - per * j.route.length;
-    let day = 1;
+    let rest = nights - per * j.route.length, day = 1;
     const stops = j.route.map((r, k) => {
-      const n = per + (rest-- > 0 ? 1 : 0);
-      const from = day; day += n;
-      return `<li><b>${r}</b><span>Day ${from}${n > 1 ? '–' + (from + n - 1) : ''} · ${n} night${n > 1 ? 's' : ''}${k === 0 ? ' · private arrival transfer' : ''}</span></li>`;
+      const n = per + (rest-- > 0 ? 1 : 0), from = day; day += n;
+      return `<li><span class="mono">Day ${from}${n > 1 ? '–' + (from + n - 1) : ''}</span><div><b>${r}</b><br><span>${n} night${n > 1 ? 's' : ''}${k === 0 ? ' · private arrival transfer' : ''}</span></div></li>`;
     }).join('');
-    $('.modal-content', m).innerHTML = `
-      <div class="m-hero"><img src="${U(j.img, 1400)}" alt="${j.title}"><div><span class="eyebrow">${j.region} · ${j.style}</span><h2>${j.title}</h2></div></div>
-      <div class="m-body">
-        <div class="m-facts"><div><small>Duration</small><b>${j.days} days</b></div><div><small>Stops</small><b>${j.route.length} places</b></div><div><small>Rating</small><b>★ ${j.rating.toFixed(2)}</b></div><div><small>Best for</small><b>${j.style}</b></div></div>
-        <h4>Route</h4><ul class="route">${stops}<li><b>Fly home</b><span>Day ${j.days} · departure transfer</span></li></ul>
-        <h4>Signature moments</h4><ul class="ticks">${j.hl.map(h => `<li>${h}</li>`).join('')}</ul>
-        <h4>Always included</h4><ul class="ticks">${INCLUDES.map(h => `<li>${h}</li>`).join('')}</ul>
-        <div class="m-cta"><div><small>From, per person sharing</small><b>${money(j.price)}</b></div><a class="btn btn-terra" href="contact.html?trip=${j.id}">Plan this journey ${ARROW}</a></div>
-      </div>`;
-    $('.modal-panel', m).scrollTop = 0;
-    m.classList.add('open');
-    m.setAttribute('aria-hidden', 'false');
+    $('.m-media', m).innerHTML = `<img src="${U(j.img, 1600)}" alt="${j.title}"><span class="tag">${DESTS.find(d => d.id === j.dest).coord}</span>`;
+    $('.m-scroll', m).innerHTML = `<span class="mono idx">${j.region} · ${j.style}</span><h2 class="d-l">${j.title}</h2>
+      <div class="m-facts"><div><span class="mono mut">Duration</span><b>${j.days} days</b></div><div><span class="mono mut">Stops</span><b>${j.route.length}</b></div><div><span class="mono mut">Rating</span><b>★ ${j.rating.toFixed(2)}</b></div><div><span class="mono mut">Style</span><b>${j.style}</b></div></div>
+      <h4>The route</h4><ul class="tl">${stops}<li><span class="mono">Day ${j.days}</span><div><b>Fly home</b><br><span>Departure transfer</span></div></li></ul>
+      <h4>Signature moments</h4><ul class="ticks">${j.hl.map(h => `<li>${h}</li>`).join('')}</ul>
+      <h4>Always included</h4><ul class="ticks">${INCLUDES.map(h => `<li>${h}</li>`).join('')}</ul>
+      <div class="m-cta"><div><span class="mono">From / person sharing</span><b>${money(j.price)}</b></div><a class="btn btn-ink" href="contact.html?trip=${j.id}">Plan this journey ${ARROW}</a></div>`;
+    $('.m-scroll', m).scrollTop = 0;
+    m.classList.add('open'); m.setAttribute('aria-hidden', 'false');
     lockScroll(true);
   }
   function modal() {
     const m = $('#modal');
     if (!m) return;
     const close = () => { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); lockScroll(false); };
-    $('.modal-bg', m).addEventListener('click', close);
-    $('.modal-close', m).addEventListener('click', close);
+    $('.m-close', m).addEventListener('click', close);
     addEventListener('keydown', e => { if (e.key === 'Escape' && m.classList.contains('open')) close(); });
+    document.addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (b) openModal(b.dataset.open); });
   }
 
   /* ---------------- journeys page ---------------- */
   function journeys() {
-    const grid = $('#jgrid');
-    if (!grid) return;
-    const f = $('#jfilter'), count = $('#jcount'), empty = $('.empty'), sortSel = $('#jsort');
+    const page = $('#jpage');
+    if (!page) return;
+    const grid = $('#jg'), list = $('#jl'), cnt = $('#jcount'), empty = $('.empty', page), q = $('#q'), sort = $('#jsort');
+    const st = { region: '', style: '', dur: '' };
     const p = new URLSearchParams(location.search);
-    ['region', 'style', 'dur'].forEach(k => { if (p.get(k) && f.elements[k]) f.elements[k].value = p.get(k); });
-    let dest = p.get('dest') || '';
-    if (p.get('q')) f.elements.q.value = p.get('q');
-    if (dest) {
-      const d = DESTS.find(x => x.id === dest);
-      if (d) f.elements.q.value = d.name;
-      dest = '';
-    }
+    ['region', 'style', 'dur'].forEach(k => { if (p.get(k)) st[k] = p.get(k); });
+    if (p.get('dest')) { const d = DESTS.find(x => x.id === p.get('dest')); if (d) q.value = d.name; }
+    if (p.get('q')) q.value = p.get('q');
+    const syncChips = () => $$('[data-f]', page).forEach(c => c.classList.toggle('on', st[c.dataset.f] === c.dataset.v));
     const render = () => {
-      const q = f.elements.q.value.trim().toLowerCase();
-      const region = f.elements.region.value, style = f.elements.style.value, dur = f.elements.dur.value;
-      let list = JOURNEYS.filter(j => {
+      const s = q.value.trim().toLowerCase();
+      let out = JOURNEYS.filter(j => {
         const d = DESTS.find(x => x.id === j.dest);
-        const hay = (j.title + ' ' + j.route.join(' ') + ' ' + (d ? d.name : '') + ' ' + j.region + ' ' + j.style).toLowerCase();
-        if (q && !hay.includes(q)) return false;
-        if (region && j.region !== region) return false;
-        if (style && j.style !== style) return false;
-        if (dur === 'short' && j.days > 7) return false;
-        if (dur === 'mid' && (j.days < 8 || j.days > 10)) return false;
-        if (dur === 'long' && j.days < 11) return false;
+        const hay = `${j.title} ${j.route.join(' ')} ${d.name} ${j.region} ${j.style}`.toLowerCase();
+        if (s && !hay.includes(s)) return false;
+        if (st.region && j.region !== st.region) return false;
+        if (st.style && j.style !== st.style) return false;
+        if (st.dur === 'short' && j.days > 7) return false;
+        if (st.dur === 'mid' && (j.days < 8 || j.days > 10)) return false;
+        if (st.dur === 'long' && j.days < 11) return false;
         return true;
       });
-      const s = sortSel.value;
-      if (s === 'low') list.sort((a, b) => a.price - b.price);
-      if (s === 'high') list.sort((a, b) => b.price - a.price);
-      if (s === 'days') list.sort((a, b) => a.days - b.days);
-      if (s === 'rating') list.sort((a, b) => b.rating - a.rating);
-      grid.innerHTML = list.map(cardHTML).join('');
-      count.textContent = list.length;
-      empty.classList.toggle('show', !list.length);
-      grid.classList.remove('in');
-      requestAnimationFrame(() => requestAnimationFrame(() => grid.classList.add('in')));
+      const so = sort.value;
+      if (so === 'low') out.sort((a, b) => a.price - b.price);
+      if (so === 'high') out.sort((a, b) => b.price - a.price);
+      if (so === 'days') out.sort((a, b) => a.days - b.days);
+      if (so === 'rating') out.sort((a, b) => b.rating - a.rating);
+      grid.innerHTML = out.map(cardHTML).join('');
+      list.innerHTML = out.map(rowHTML).join('');
+      cnt.textContent = String(out.length).padStart(2, '0');
+      empty.classList.toggle('show', !out.length);
+      grid.classList.remove('in'); list.classList.remove('in');
+      requestAnimationFrame(() => requestAnimationFrame(() => { grid.classList.add('in'); list.classList.add('in'); }));
+      syncChips();
     };
-    f.addEventListener('submit', e => { e.preventDefault(); render(); });
-    f.addEventListener('change', render);
-    f.elements.q.addEventListener('input', render);
-    sortSel.addEventListener('change', render);
-    $$('[data-reset]').forEach(b => b.addEventListener('click', () => { f.reset(); render(); }));
-    bindCards(grid);
+    $$('[data-f]', page).forEach(c => c.addEventListener('click', () => { const k = c.dataset.f; st[k] = st[k] === c.dataset.v ? '' : c.dataset.v; render(); }));
+    $('#jregion').value = st.region;
+    $('#jregion').addEventListener('change', e => { st.region = e.target.value; render(); });
+    $('#jdur').value = st.dur;
+    $('#jdur').addEventListener('change', e => { st.dur = e.target.value; render(); });
+    q.addEventListener('input', render);
+    sort.addEventListener('change', render);
+    $$('[data-reset]', page).forEach(b => b.addEventListener('click', () => { st.region = st.style = st.dur = ''; q.value = ''; $('#jregion').value = ''; $('#jdur').value = ''; render(); }));
+    $$('.view-t button', page).forEach(b => b.addEventListener('click', () => {
+      $$('.view-t button', page).forEach(x => x.classList.toggle('on', x === b));
+      page.classList.toggle('jlist', b.dataset.v === 'list');
+      store.set('lj-view', b.dataset.v);
+    }));
+    if (store.get('lj-view', 'grid') === 'list') $('.view-t button[data-v=list]', page).click();
+    bindCards(grid); bindCards(list);
     render();
   }
 
   /* ---------------- destinations page ---------------- */
   function destinations() {
-    const grid = $('#dgrid');
-    if (!grid) return;
-    grid.innerHTML = DESTS.map((d, i) => destCard(d, i % 9 === 0 ? 'big' : i % 9 === 5 ? 'tall' : '')).join('');
-    const tabs = $$('.tab', $('#dtabs'));
-    tabs.forEach(t => {
+    const g = $('#dg');
+    if (!g) return;
+    g.innerHTML = DESTS.map((d, i) => destCard(d, i)).join('');
+    const cards = $$('.dc', g);
+    const stagger = () => {
+      const cols = innerWidth > 1100 ? 3 : innerWidth > 640 ? 2 : 1;
+      cards.filter(c => !c.classList.contains('hide')).forEach((c, i) => c.classList.toggle('off', cols > 1 && i % cols === 1));
+    };
+    $$('#dtabs .chip').forEach(t => {
       const r = t.dataset.region;
-      const n = r ? DESTS.filter(d => d.region === r).length : DESTS.length;
-      t.insertAdjacentHTML('beforeend', `<sup>${n}</sup>`);
+      t.insertAdjacentHTML('beforeend', `<sup>${r ? DESTS.filter(d => d.region === r).length : DESTS.length}</sup>`);
       t.addEventListener('click', () => {
-        tabs.forEach(x => x.classList.toggle('on', x === t));
-        $$('.dcard', grid).forEach(c => c.classList.toggle('hide', !!r && c.dataset.region !== r));
+        $$('#dtabs .chip').forEach(x => x.classList.toggle('on', x === t));
+        cards.forEach(c => c.classList.toggle('hide', !!r && c.dataset.region !== r));
+        stagger();
       });
     });
-  }
-
-  /* ---------------- experiences ---------------- */
-  function experiences() {
-    const panels = $$('.xpanel');
-    if (!panels.length) return;
-    const set = p => panels.forEach(x => x.classList.toggle('on', x === p));
-    const fine = matchMedia('(hover: hover) and (min-width: 981px)');
-    panels.forEach(p => {
-      p.addEventListener('click', () => set(p));
-      p.addEventListener('mouseenter', () => { if (fine.matches) set(p); });
-    });
+    stagger(); addEventListener('resize', stagger);
+    const mx = $('#mx');
+    if (mx) mx.innerHTML = `<thead><tr><th>Destination</th>${MONTHS.map(m => `<th>${m}</th>`).join('')}</tr></thead><tbody>${DESTS.map((d, r) =>
+      `<tr><td>${d.name}<small>${d.region}</small></td>${MONTHS.map((m, i) => `<td>${d.best.includes(i + 1) ? `<i class="dot" style="--d:${r + i}"></i>` : d.ok.includes(i + 1) ? `<i class="dot ok" style="--d:${r + i}"></i>` : ''}</td>`).join('')}</tr>`).join('')}</tbody>`;
   }
 
   /* ---------------- counters ---------------- */
@@ -381,158 +486,109 @@
     const io = new IntersectionObserver(es => es.forEach(e => {
       if (!e.isIntersecting) return;
       io.unobserve(e.target);
-      const el = e.target, to = parseFloat(el.dataset.count), dec = (el.dataset.count.split('.')[1] || '').length;
-      const t0 = performance.now(), dur = 2000;
+      const el = e.target, to = parseFloat(el.dataset.count), dec = (el.dataset.count.split('.')[1] || '').length, t0 = performance.now();
       const step = t => {
-        const k = Math.min(1, (t - t0) / dur), v = to * (1 - Math.pow(1 - k, 4));
+        const k = clamp((t - t0) / 2000, 0, 1), v = to * (1 - Math.pow(1 - k, 4));
         el.firstChild.nodeValue = dec ? v.toFixed(dec) : Math.round(v).toLocaleString('en-US');
         if (k < 1) requestAnimationFrame(step);
       };
       requestAnimationFrame(step);
-    }), { threshold: .5 });
+    }), { threshold: .4 });
     $$('[data-count]').forEach(el => io.observe(el));
   }
 
-  /* ---------------- testimonials ---------------- */
-  function quotes() {
-    const qs = $$('.qs'), imgs = $$('.q-media img'), bar = $('.q-bar i'), cnt = $('.q-count');
-    if (!qs.length) return;
-    let i = 0, t;
-    const go = n => {
-      i = (n + qs.length) % qs.length;
-      qs.forEach((q, k) => q.classList.toggle('on', k === i));
-      imgs.forEach((q, k) => q.classList.toggle('on', k === i));
-      if (cnt) cnt.textContent = `0${i + 1} / 0${qs.length}`;
-      bar.classList.remove('run'); void bar.offsetWidth; bar.classList.add('run');
-      clearTimeout(t); t = setTimeout(() => go(i + 1), 7000);
-    };
-    $('.q-prev').addEventListener('click', () => go(i - 1));
-    $('.q-next').addEventListener('click', () => go(i + 1));
-    go(0);
-  }
-
-  /* ---------------- parallax ---------------- */
-  function parallax() {
-    const els = $$('[data-speed]');
-    return () => {
-      if (innerWidth < 680) return;
-      els.forEach(el => {
-        const r = el.parentElement.getBoundingClientRect();
-        if (r.bottom < -200 || r.top > innerHeight + 200) return;
-        const c = r.top + r.height / 2 - innerHeight / 2;
-        el.style.transform = `translate3d(0,${c * -parseFloat(el.dataset.speed)}px,0)`;
-      });
-    };
-  }
-
-  /* ---------------- cursor ---------------- */
+  /* ---------------- cursor + magnetic ---------------- */
   function cursor() {
-    if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-    const c = document.createElement('div');
-    c.className = 'cursor';
-    c.innerHTML = '<span></span>';
+    if (!fine) return;
+    const c = document.createElement('div'); c.className = 'cur'; c.innerHTML = '<span></span>';
     document.body.appendChild(c);
-    let x = 0, y = 0, cx = 0, cy = 0;
+    let x = -100, y = -100, cx = -100, cy = -100;
     addEventListener('mousemove', e => { x = e.clientX; y = e.clientY; c.classList.add('show'); });
     document.addEventListener('mouseleave', () => c.classList.remove('show'));
     document.addEventListener('mouseover', e => {
-      const v = e.target.closest('[data-cursor]');
-      const l = e.target.closest('a, button, select, input, textarea, label');
-      c.classList.toggle('big', !!v);
-      c.classList.toggle('link', !v && !!l);
-      if (v) c.firstChild.textContent = v.dataset.cursor;
+      const lab = e.target.closest('[data-cur]'), l = e.target.closest('a, button, select, input, textarea, label');
+      c.classList.toggle('lbl', !!lab);
+      c.classList.toggle('link', !lab && !!l);
+      if (lab) c.firstChild.textContent = lab.dataset.cur;
     });
-    const loop = () => {
-      cx += (x - cx) * .2; cy += (y - cy) * .2;
-      c.style.transform = `translate3d(${cx}px,${cy}px,0)`;
-      requestAnimationFrame(loop);
-    };
+    const loop = () => { cx += (x - cx) * .18; cy += (y - cy) * .18; c.style.transform = `translate3d(${cx}px,${cy}px,0)`; requestAnimationFrame(loop); };
     loop();
+    $$('.mag').forEach(m => {
+      m.addEventListener('mousemove', e => { const r = m.getBoundingClientRect(); m.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * .3}px,${(e.clientY - r.top - r.height / 2) * .3}px)`; });
+      m.addEventListener('mouseleave', () => { m.style.transform = ''; });
+    });
   }
 
   /* ---------------- forms ---------------- */
+  const okMail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
   function newsletter() {
-    $$('.news form').forEach(f => f.addEventListener('submit', e => {
+    $$('.news-f form').forEach(f => f.addEventListener('submit', e => {
       e.preventDefault();
-      const i = f.querySelector('input'), msg = f.parentElement.querySelector('.msg');
-      const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(i.value.trim());
-      msg.textContent = ok ? 'Welcome aboard — your first letter lands this Sunday.' : 'Please enter a valid email address.';
-      if (ok) f.reset();
+      const i = $('input', f), msg = f.parentElement.querySelector('.msg');
+      msg.textContent = okMail(i.value) ? 'You’re in. First dispatch lands Sunday.' : 'Please enter a valid email address.';
+      if (okMail(i.value)) f.reset();
     }));
   }
   function faq() {
     $$('.faq-q').forEach(q => q.addEventListener('click', () => {
       const it = q.parentElement, open = !it.classList.contains('open');
-      $$('.faq-item').forEach(x => { x.classList.remove('open'); x.querySelector('.faq-q').setAttribute('aria-expanded', 'false'); });
+      $$('.faq-item').forEach(x => { x.classList.remove('open'); $('.faq-q', x).setAttribute('aria-expanded', 'false'); });
       if (open) { it.classList.add('open'); q.setAttribute('aria-expanded', 'true'); }
     }));
   }
-
-  /* ---------------- trip planner ---------------- */
   function planner() {
     const pl = $('#planner');
     if (!pl) return;
-    const steps = $$('.pstep', pl), bars = $$('.p-steps i', pl), next = $('.p-next', pl), back = $('.p-nav .back', pl), err = $('.p-error', pl), lbl = $('.p-count', pl);
+    const steps = $$('.pstep', pl), bars = $$('.pl-steps i', pl), next = $('.p-next', pl), back = $('.p-nav .back', pl), err = $('.p-error', pl), lbl = $('.pl-count', pl);
     const data = { where: [], style: [], adults: 2, kids: 0, budget: 6000 };
     let i = 0;
-    $$('.choice', pl).forEach(group => {
-      const key = group.dataset.key;
-      group.addEventListener('click', e => {
-        const b = e.target.closest('button');
-        if (!b) return;
-        b.classList.toggle('on');
-        data[key] = $$('button.on', group).map(x => x.dataset.v);
-        err.textContent = '';
-      });
-    });
-    $$('.stepper', pl).forEach(s => {
-      const key = s.dataset.key, out = $('output', s), min = +s.dataset.min;
-      s.addEventListener('click', e => {
-        const b = e.target.closest('button');
-        if (!b) return;
-        data[key] = Math.max(min, Math.min(12, data[key] + (+b.dataset.d)));
-        out.textContent = data[key];
-      });
-    });
-    const range = $('#budget'), rv = $('#budget-val');
-    const showBudget = () => { data.budget = +range.value; rv.firstChild.nodeValue = money(data.budget) + (data.budget >= 20000 ? '+' : ''); };
-    range.addEventListener('input', showBudget);
-    showBudget();
+    $$('.pick', pl).forEach(g => g.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      b.classList.toggle('on');
+      data[g.dataset.key] = $$('button.on', g).map(x => x.dataset.v);
+      err.textContent = '';
+    }));
+    $$('.stepper', pl).forEach(s => s.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const k = s.dataset.key;
+      data[k] = clamp(data[k] + (+b.dataset.d), +s.dataset.min, 12);
+      $('output', s).textContent = data[k];
+    }));
+    const range = $('#budget'), out = $('#budget-val');
+    const bud = () => { data.budget = +range.value; out.textContent = money(data.budget) + (data.budget >= 20000 ? '+' : ''); };
+    range.addEventListener('input', bud); bud();
     const trip = byId(new URLSearchParams(location.search).get('trip') || '');
     if (trip) {
       const d = DESTS.find(x => x.id === trip.dest);
-      const b = $(`.choice[data-key="where"] button[data-v="${d ? d.name : ''}"]`, pl);
-      if (b) { b.classList.add('on'); data.where = [b.dataset.v]; }
-      const sb = $(`.choice[data-key="style"] button[data-v="${trip.style}"]`, pl);
+      const b = $(`.pick[data-key=where] button[data-v="${d.name}"]`, pl);
+      if (b) { b.classList.add('on'); data.where = [d.name]; }
+      const sb = $(`.pick[data-key=style] button[data-v="${trip.style}"]`, pl);
       if (sb) { sb.classList.add('on'); data.style = [trip.style]; }
       pl.elements.msg.value = `I'd love to plan "${trip.title}" (${trip.days} days).`;
-      $('.p-trip', pl).textContent = `Starting from: ${trip.title}`;
+      $('.pl-trip', pl).textContent = `↳ ${trip.title}`;
     }
     const show = n => {
       i = n;
       steps.forEach((s, k) => s.classList.toggle('on', k === i));
       bars.forEach((b, k) => b.classList.toggle('done', k <= i));
       back.hidden = i === 0 || i === steps.length - 1;
-      lbl.textContent = i < steps.length - 1 ? `Step ${i + 1} of ${steps.length - 1}` : 'Request sent';
       $('.p-nav', pl).style.display = i === steps.length - 1 ? 'none' : '';
-      next.firstChild.nodeValue = i === steps.length - 2 ? 'Send my request ' : 'Continue ';
+      lbl.textContent = i < steps.length - 1 ? `Step 0${i + 1} / 04` : 'Sent ✓';
+      $('.roll > span', next).textContent = i === steps.length - 2 ? 'Send request' : 'Continue';
+      $('.roll > span', next).dataset.t = $('.roll > span', next).textContent;
       err.textContent = '';
-      const top = pl.getBoundingClientRect().top + scrollY - 100;
-      if (n > 0 && pl.getBoundingClientRect().top < 0) lenis ? lenis.scrollTo(top) : scrollTo({ top, behavior: 'smooth' });
+      if (n > 0 && pl.getBoundingClientRect().top < 0) scrollToEl(pl);
     };
     const valid = () => {
-      if (i === 0 && !data.where.length) return 'Pick at least one destination — or choose “Surprise me”.';
-      if (i === 1 && !pl.elements.month.value) { pl.elements.month.parentElement.classList.add('err'); return 'Let us know roughly when you would like to travel.'; }
+      if (i === 0 && !data.where.length) return 'Pick at least one place — or “Surprise me”.';
+      if (i === 1 && !pl.elements.month.value) { pl.elements.month.parentElement.classList.add('err'); return 'Roughly when would you like to travel?'; }
       if (i === 2 && !data.style.length) return 'Choose at least one travel style.';
       if (i === 3) {
-        let bad = '';
-        const name = pl.elements.name, email = pl.elements.email;
-        name.parentElement.classList.toggle('err', !name.value.trim());
-        const okMail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
-        email.parentElement.classList.toggle('err', !okMail);
-        if (!name.value.trim()) bad = 'Please add your name.';
-        else if (!okMail) bad = 'Please add a valid email so your advisor can reply.';
-        return bad;
+        const n = pl.elements.name, m = pl.elements.email;
+        n.parentElement.classList.toggle('err', !n.value.trim());
+        m.parentElement.classList.toggle('err', !okMail(m.value));
+        if (!n.value.trim()) return 'Please add your name.';
+        if (!okMail(m.value)) return 'Please add a valid email so your designer can reply.';
       }
       return '';
     };
@@ -543,11 +599,10 @@
       if (bad) { err.textContent = bad; return; }
       if (i === steps.length - 2) {
         const ref = 'LJ-' + Math.random().toString(36).slice(2, 7).toUpperCase();
-        $('#summary').innerHTML = [
-          ['Reference', ref], ['Name', pl.elements.name.value.trim()], ['Where', data.where.join(', ')],
+        $('#summary').innerHTML = [['Reference', ref], ['Name', pl.elements.name.value.trim()], ['Where', data.where.join(', ')],
           ['When', pl.elements.month.selectedOptions[0].text + ' · ' + pl.elements.tlen.value],
           ['Travellers', `${data.adults} adult${data.adults > 1 ? 's' : ''}${data.kids ? `, ${data.kids} child${data.kids > 1 ? 'ren' : ''}` : ''}`],
-          ['Style', data.style.join(', ')], ['Budget', money(data.budget) + (data.budget >= 20000 ? '+' : '') + ' per person']
+          ['Style', data.style.join(', ')], ['Budget', money(data.budget) + (data.budget >= 20000 ? '+' : '') + ' / person']
         ].map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join('');
         $('#done-name').textContent = pl.elements.name.value.trim().split(' ')[0];
       }
@@ -561,38 +616,48 @@
   function observe() {
     const io = new IntersectionObserver(es => es.forEach(e => {
       if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
-    }), { threshold: .12, rootMargin: '0px 0px -6% 0px' });
-    $$('.rv, .ri, .stagger').forEach(el => io.observe(el));
+    }), { threshold: .1, rootMargin: '0px 0px -5% 0px' });
+    $$('.rv, .st, [data-split]:not(.hx-title [data-split]):not([data-hero]), .manifest, .matrix').forEach(el => io.observe(el));
+  }
+
+  /* ---------------- fit big type to its box ---------------- */
+  function fit() {
+    $$('.d-xl, .d-l, .d-m, .f-word, .manifest, .yr b, .dc-bot h3').forEach(el => {
+      el.style.fontSize = '';
+      const avail = el.clientWidth;
+      if (!avail) return;
+      const ws = $$('.w', el);
+      const widest = ws.length ? Math.max(...ws.map(w => w.offsetWidth)) : el.scrollWidth;
+      if (widest > avail) el.style.fontSize = (parseFloat(getComputedStyle(el).fontSize) * avail / widest * .98) + 'px';
+    });
   }
 
   /* ---------------- boot ---------------- */
-  smooth();
+  split();
+  fit();
+  addEventListener('resize', fit);
+  if (document.fonts) document.fonts.ready.then(fit);
+  transitions();
   chrome();
-  hero();
-  search();
-  const tickWords = words();
-  const tickHz = hz();
-  featured();
+  homeDests();
+  const tHero = hero();
+  const tStack = stack();
+  drags();
+  velMarquee();
+  const tPx = parallax();
   modal();
   journeys();
   destinations();
-  experiences();
   counters();
-  quotes();
-  const tickPx = parallax();
   cursor();
   newsletter();
   faq();
   planner();
-  observe();
-  let lastY = -1, lastW = 0;
+  intro(() => { $$('[data-hero]').forEach(el => el.classList.add('in')); observe(); });
+  let ly = -1, lw = 0;
   const frame = () => {
-    if (scrollY !== lastY || innerWidth !== lastW) {
-      lastY = scrollY; lastW = innerWidth;
-      tickWords(); tickHz(); tickPx();
-    }
+    if (scrollY !== ly || innerWidth !== lw) { ly = scrollY; lw = innerWidth; tHero(); tStack(); tPx(); }
     requestAnimationFrame(frame);
   };
   frame();
-  addEventListener('resize', () => { lastY = -1; });
 })();
